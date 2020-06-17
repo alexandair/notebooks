@@ -3,3 +3,4 @@
 FROM jupyter/base-notebook:17aba6048f44
 ENV TAG="17aba6048f44"
 COPY binder/README.ipynb .
+COPY binder/test.ipynb .
