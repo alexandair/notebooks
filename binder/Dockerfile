@@ -56,7 +56,7 @@ RUN dotnet help
 
 # Copy notebooks
 
-COPY ../notebooks/ ${HOME}/notebooks/
+# COPY ../notebooks/ ${HOME}/notebooks/
 COPY binder/README.ipynb .
 COPY binder/test.ipynb .
 
