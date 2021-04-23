@@ -1,7 +1,4 @@
-# Copyright (c) Jupyter Development Team.
-# Distributed under the terms of the Modified BSD License.
-FROM jupyter/base-notebook:17aba6048f44
-ENV TAG="17aba6048f44"
+FROM jupyter/base-notebook:latest
 
 # Install .NET CLI dependencies
 
@@ -17,17 +14,27 @@ USER root
 RUN apt-get update
 RUN apt-get install -y curl
 
+ENV \
+    # Enable detection of running in a container
+    DOTNET_RUNNING_IN_CONTAINER=true \
+    # Enable correct mode for dotnet watch (only mode supported in a container)
+    DOTNET_USE_POLLING_FILE_WATCHER=true \
+    # Skip extraction of XML docs - generally not useful within an image/container - helps performance
+    NUGET_XMLDOC_MODE=skip \
+    # Opt out of telemetry until after we install jupyter when building the image, this prevents caching of machine id
+    DOTNET_INTERACTIVE_CLI_TELEMETRY_OPTOUT=true
+
 # Install .NET CLI dependencies
-RUN apt-get install -y --no-install-recommends \
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         libc6 \
         libgcc1 \
         libgssapi-krb5-2 \
-        libicu60 \
+        libicu66 \
         libssl1.1 \
         libstdc++6 \
-        zlib1g 
-
-RUN rm -rf /var/lib/apt/lists/*
+        zlib1g \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install .NET Core SDK
 
@@ -45,38 +52,24 @@ RUN dotnet_sdk_version=5.0.102 \
     # Trigger first run experience by running arbitrary cmd
     && dotnet help
 
-# Enable detection of running in a container
-ENV DOTNET_RUNNING_IN_CONTAINER=true \
-    # Enable correct mode for dotnet watch (only mode supported in a container)
-    DOTNET_USE_POLLING_FILE_WATCHER=true \
-    # Skip extraction of XML docs - generally not useful within an image/container - helps performance
-    NUGET_XMLDOC_MODE=skip \
-    # Opt out of telemetry until after we install jupyter when building the image, this prevents caching of machine id
-    DOTNET_TRY_CLI_TELEMETRY_OPTOUT=true
-
-# Trigger first run experience by running arbitrary cmd
-RUN dotnet help
-
 # Copy notebooks
 
-# COPY ../notebooks/ ${HOME}/notebooks/
-COPY binder/README.ipynb .
-COPY binder/test.ipynb .
+COPY ./notebooks/ ${HOME}/notebooks/
 
 # Copy package sources
-
 COPY ./NuGet.config ${HOME}/nuget.config
 
 RUN chown -R ${NB_UID} ${HOME}
 USER ${USER}
 
-#Install nteract 
+
+# Install nteract 
 RUN pip install nteract_on_jupyter
 
-# Install lastest build from master branch of Microsoft.DotNet.Interactive from myget
-RUN dotnet tool install -g Microsoft.dotnet-interactive --add-source "https://dotnet.myget.org/F/dotnet-try/api/v3/index.json"
+# Install lastest build from master branch of Microsoft.DotNet.Interactive
+RUN dotnet tool install -g Microsoft.dotnet-interactive --add-source "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json"
 
-#latest stable from nuget.org
+# Latest stable from nuget.org
 #RUN dotnet tool install -g Microsoft.dotnet-interactive --add-source "https://api.nuget.org/v3/index.json"
 
 ENV PATH="${PATH}:${HOME}/.dotnet/tools"
@@ -86,7 +79,7 @@ RUN echo "$PATH"
 RUN dotnet interactive jupyter install
 
 # Enable telemetry once we install jupyter for the image
-ENV DOTNET_TRY_CLI_TELEMETRY_OPTOUT=false
+ENV DOTNET_INTERACTIVE_CLI_TELEMETRY_OPTOUT=false
 
 # Set root to notebooks
-# WORKDIR ${HOME}/notebooks/ <-- moj komentar
+WORKDIR ${HOME}/notebooks/
