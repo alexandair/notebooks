@@ -32,15 +32,18 @@ RUN rm -rf /var/lib/apt/lists/*
 # Install .NET Core SDK
 
 # When updating the SDK version, the sha512 value a few lines down must also be updated.
-ENV DOTNET_SDK_VERSION 5.0.202
+ENV DOTNET_SDK_VERSION 5.0.102
 
-RUN curl -SL --output dotnet.tar.gz https://dotnetcli.blob.core.windows.net/dotnet/Sdk/$DOTNET_SDK_VERSION/dotnet-sdk-$DOTNET_SDK_VERSION-linux-x64.tar.gz \
-    && dotnet_sha512='5b9398c7bfe7f67cd9f38fdd4e6e429e1b6aaac0fe04672be0f8dca26580fb46906fd1d2deea6a7d3fb07d77e898f067d3ac1805fe077dc7c1adf9515c9bc9a9' \
+RUN dotnet_sdk_version=5.0.102 \
+    && curl -SL --output dotnet.tar.gz https://dotnetcli.azureedge.net/dotnet/Sdk/$dotnet_sdk_version/dotnet-sdk-$dotnet_sdk_version-linux-x64.tar.gz \
+    && dotnet_sha512='0ce2d5365ca39808fb71baec4584d4ec786491c3735543dc93244604ea97e242377d0987cd8b1e529258dee68f203b5780559201e7ea6d84487d6d8d433329b3' \
     && echo "$dotnet_sha512 dotnet.tar.gz" | sha512sum -c - \
     && mkdir -p /usr/share/dotnet \
-    && tar -zxf dotnet.tar.gz -C /usr/share/dotnet \
+    && tar -ozxf dotnet.tar.gz -C /usr/share/dotnet \
     && rm dotnet.tar.gz \
-    && ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet
+    && ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet \
+    # Trigger first run experience by running arbitrary cmd
+    && dotnet help
 
 # Enable detection of running in a container
 ENV DOTNET_RUNNING_IN_CONTAINER=true \
